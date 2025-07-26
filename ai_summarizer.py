@@ -7,48 +7,33 @@ import logging
 import time
 from datetime import datetime
 import regex as re
-# Set up logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AISummarizer:
-    """
-    A class for generating AI-powered summaries of threat intelligence articles.
-    Integrated with Ollama for local LLM processing as per technical requirements.
-    """
+    """AI-powered threat intelligence summarizer with Ollama integration."""
     
     def __init__(self, use_ollama: bool = True, ollama_url: str = "http://localhost:11434", 
                  model_name: str = "llama2") -> None:
-        """
-        Initialize the summarizer.
-        
-        Args:
-            use_ollama: Whether to use Ollama for summarization (default True per requirements)
-            ollama_url: URL for Ollama API
-            model_name: Name of the LLM model to use (llama2, mistral, etc.)
-        """
         self.use_ollama = use_ollama
         self.ollama_url = ollama_url
         self.model_name = model_name
         self.ollama_available = False
         
-        # Test Ollama availability on initialization
         if self.use_ollama:
             self.ollama_available = self._test_ollama_connection()
             if not self.ollama_available:
                 logger.warning(f"Ollama not available at {ollama_url}. Falling back to extractive summarization.")
         
-        # Ensure NLTK resources are available
         self._ensure_nltk_data()
-        
-        # Initialize threat classification system
         self._initialize_threat_categories()
     
     def _ensure_nltk_data(self) -> None:
         """Ensure required NLTK data is available."""
         try:
             nltk.data.find('tokenizers/punkt')
-            nltk.data.find('tokenizers/punkt_tab') # New tokenizer in recent NLTK versions
+            nltk.data.find('tokenizers/punkt_tab')
         except LookupError:
             logger.info("Downloading required NLTK data...")
             try:
@@ -66,7 +51,7 @@ class AISummarizer:
             return False
     
     def _initialize_threat_categories(self) -> None:
-        """Initialize comprehensive threat categorization system."""
+        """Initialize threat categorization system."""
         self.threat_patterns = {
             "Critical Vulnerability": {
                 "keywords": ["zero-day", "critical vulnerability", "rce", "remote code execution", 
@@ -131,35 +116,17 @@ class AISummarizer:
         }
     
     def generate_summary(self, title: str, content: str, source: str = "") -> Dict[str, any]:
-        """
-        Generate a comprehensive summary of the threat intelligence article.
-        
-        Args:
-            title: Title of the article
-            content: Content to summarize
-            source: Source of the article
-            
-        Returns:
-            Dictionary with summary, threat classification, and metadata
-        """
+        """Generate comprehensive threat intelligence summary."""
         start_time = time.time()
         
-        # Determine the best summarization method
         if self.use_ollama and self.ollama_available:
             summary_result = self._generate_ollama_summary(title, content)
         else:
             summary_result = self._generate_extractive_summary(title, content)
         
-        # Enhance with threat classification
         threat_classification = self._classify_threat(title, content)
-        
-        # Generate actionable recommendations
         recommendations = self._generate_actionable_recommendations(threat_classification)
-        
-        # Extract key entities and indicators
         key_entities = self._extract_key_entities(content)
-        
-        # Calculate processing time
         processing_time = time.time() - start_time
         
         return {
@@ -177,29 +144,15 @@ class AISummarizer:
         }
     
     def _generate_ollama_summary(self, title: str, content: str) -> str:
-        """
-        Generate a summary using Ollama LLM as per technical requirements.
-        
-        Args:
-            title: Article title
-            content: Article content
-            
-        Returns:
-            AI-generated summary
-        """
+        """Generate summary using Ollama LLM."""
         try:
-            # Prepare content for the LLM (limit length to avoid token issues)
             max_content_length = 4000
             input_content = f"{title}\n\n{content[:max_content_length]}{'...' if len(content) > max_content_length else ''}"
                 
-            # Enhanced prompt for better threat intelligence analysis
             prompt = f"""You are a cybersecurity threat intelligence analyst. Analyze the following threat intelligence report and provide a comprehensive summary.
             
-
 Article: {input_content}
-
 Please provide a structured analysis with:
-
 1. THREAT OVERVIEW: Brief description of the threat (2-3 sentences)
 2. THREAT ACTOR: Who is behind this threat (if mentioned)
 3. ATTACK VECTOR: How the attack is carried out
@@ -207,10 +160,8 @@ Please provide a structured analysis with:
 5. INDICATORS: Key technical indicators mentioned
 6. TIMELINE: When this threat was discovered/is active
 7. MITIGATION: Immediate actions to take
-
 Keep the summary concise but comprehensive, focusing on actionable intelligence for security teams."""
             
-            # Make request to Ollama API with improved error handling
             response = requests.post(
                 f"{self.ollama_url}/api/generate",
                 json={
@@ -218,12 +169,12 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
                     "prompt": prompt,
                     "stream": False,
                     "options": {
-                        "temperature": 0.3, # Lower temperature for more focused output
+                        "temperature": 0.3,
                         "top_p": 0.9,
-                        "num_predict": 800 # Limit response length
+                        "num_predict": 800
                     }
                 },
-                timeout=60 # Increased timeout for better reliability
+                timeout=60
             )
             
             response.raise_for_status()
@@ -231,7 +182,6 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             result = response.json()
             ai_summary = result.get("response", "Error: Empty response from LLM")
             
-            # Validate and clean the response
             if len(ai_summary.strip()) < 50:
                 logger.warning("LLM response too short, falling back to extractive summary")
                 return self._generate_extractive_summary(title, content)
@@ -240,7 +190,7 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
                 
         except requests.RequestException as e:
             logger.error(f"Network error using Ollama: {e}")
-            self.ollama_available = False # Mark as unavailable for future requests
+            self.ollama_available = False
             return self._generate_extractive_summary(title, content)
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error from Ollama response: {e}")
@@ -250,26 +200,15 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             return self._generate_extractive_summary(title, content)
     
     def _generate_extractive_summary(self, title: str, content: str) -> str:
-        """
-        Generate an enhanced extractive summary when LLM is not available.
-        
-        Args:
-            title: Article title
-            content: Article content
-            
-        Returns:
-            Extractive summary with enhanced intelligence
-        """
+        """Generate extractive summary when LLM is not available."""
         try:
             sentences = nltk.sent_tokenize(content)
         except Exception as e:
             logger.warning(f"Error tokenizing sentences: {e}")
             sentences = [s.strip() + '.' for s in content.split('.') if s.strip()]
         
-        # Score sentences based on threat intelligence relevance
         scored_sentences = []
         
-        # Keywords that indicate important threat intelligence content
         important_keywords = [
             'malware', 'vulnerability', 'exploit', 'attack', 'breach', 'compromise',
             'threat', 'malicious', 'suspicious', 'campaign', 'actor', 'indicator',
@@ -277,53 +216,38 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
         ]
         
         for sentence in sentences:
-            if len(sentence.split()) < 5: # Skip very short sentences
+            if len(sentence.split()) < 5:
                 continue
                 
             score = 0
             sentence_lower = sentence.lower()
             
-            # Score based on important keywords
             for keyword in important_keywords:
                 if keyword in sentence_lower:
                     score += 2
             
-            # Boost score for sentences with specific patterns
             if any(pattern in sentence_lower for pattern in ['researchers', 'discovered', 'observed', 'detected']):
                 score += 1
             
             if any(pattern in sentence_lower for pattern in ['recommend', 'should', 'patch', 'update', 'mitigate']):
                 score += 1
             
-            # Penalize very long sentences
             if len(sentence.split()) > 40:
                 score -= 1
             
             scored_sentences.append((sentence, score))
         
-        # Sort by score and select top sentences
         scored_sentences.sort(key=lambda x: x[1], reverse=True)
         top_sentences = [sent[0] for sent in scored_sentences[:4]]
         
-        # Create coherent summary
         summary = ' '.join(top_sentences) if top_sentences else content[:500] + "..."
         
         return summary
     
     def _classify_threat(self, title: str, content: str) -> Dict[str, any]:
-        """
-        Classify the threat type and assess severity.
-        
-        Args:
-            title: Article title
-            content: Article content
-            
-        Returns:
-            Threat classification information
-        """
+        """Classify threat type and assess severity."""
         combined_text = f"{title} {content}".lower()
         
-        # Score each threat category
         category_scores = {}
         
         for category, details in self.threat_patterns.items():
@@ -343,12 +267,10 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
                     "priority": details["priority"]
                 }
         
-        # Determine primary threat type
         if category_scores:
             primary_category = max(category_scores.keys(), key=lambda x: category_scores[x]["score"])
             primary_info = category_scores[primary_category]
             
-            # Calculate confidence based on number of matches
             confidence = min(0.95, 0.3 + (primary_info["score"] * 0.15))
             
         else:
@@ -356,7 +278,6 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             primary_info = {"severity": "Unknown", "priority": 5}
             confidence = 0.3
         
-        # Identify affected systems
         affected_systems = self._identify_affected_systems(combined_text)
         
         return {
@@ -390,27 +311,17 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
         return affected
     
     def _generate_actionable_recommendations(self, threat_classification: Dict) -> List[str]:
-        """
-        Generate actionable recommendations based on threat type.
-        
-        Args:
-            threat_classification: Result from _classify_threat
-            
-        Returns:
-            List of actionable recommendations
-        """
+        """Generate actionable recommendations based on threat type."""
         threat_type = threat_classification["primary_type"]
         severity = threat_classification["severity"]
         affected_systems = threat_classification["affected_systems"]
         
-        # Base recommendations for all threats
         recommendations = [
             "Monitor network traffic for suspicious activity",
             "Review and update security policies",
             "Ensure all systems have latest security patches"
         ]
         
-        # Threat-specific recommendations
         specific_recommendations = {
             "Critical Vulnerability": [
                 "Immediately assess if your systems are affected",
@@ -456,11 +367,9 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             ]
         }
         
-        # Add threat-specific recommendations
         if threat_type in specific_recommendations:
             recommendations.extend(specific_recommendations[threat_type])
         
-        # Add system-specific recommendations
         if affected_systems:
             for system in affected_systems:
                 if system == "Windows":
@@ -470,24 +379,15 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
                 elif system == "Cloud":
                     recommendations.append("Review cloud security configurations and access logs")
         
-        # Prioritize based on severity
         if severity == "Critical":
             recommendations.insert(0, "🚨 URGENT: This is a critical threat requiring immediate attention")
         elif severity == "High":
             recommendations.insert(0, "⚠️ HIGH PRIORITY: Address this threat within 24 hours")
         
-        return list(dict.fromkeys(recommendations)) # Remove duplicates while preserving order
+        return list(dict.fromkeys(recommendations))
     
     def _extract_key_entities(self, content: str) -> Dict[str, List[str]]:
-        """
-        Extract key entities from threat intelligence content.
-        
-        Args:
-            content: Article content
-            
-        Returns:
-            Dictionary of extracted entities
-        """
+        """Extract key entities from threat intelligence content."""
         entities = {
             "threat_actors": [],
             "malware_families": [],
@@ -496,7 +396,6 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             "countries": []
         }
         
-        # Define entity patterns
         entity_patterns = {
             "threat_actors": [
                 r"(?:APT[\s-]?\d+)", r"(?:Lazarus(?:\s+Group)?)", r"(?:Carbanak)", 
@@ -507,7 +406,7 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
                 r"(?:WannaCry|NotPetya|Emotet|TrickBot|Dridex|Qbot)"
             ],
             "attack_techniques": [
-                r"(?:T\d{4}(?:\.\d{3})?)", # MITRE ATT&CK techniques
+                r"(?:T\d{4}(?:\.\d{3})?)",
                 r"(?:spear[\s-]?phishing)", r"(?:credential[\s-]?stuffing)",
                 r"(?:lateral[\s-]?movement)", r"(?:privilege[\s-]?escalation)"
             ],
@@ -521,25 +420,18 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             ]
         }
         
-        # Extract entities using patterns
         for category, patterns in entity_patterns.items():
             for pattern in patterns:
                 matches = re.findall(pattern, content, re.IGNORECASE)
                 entities[category].extend([match.strip() for match in matches if match.strip()])
         
-        # Remove duplicates and clean up
         for category in entities:
             entities[category] = list(set(entities[category]))
         
         return entities
     
     def get_available_models(self) -> List[str]:
-        """
-        Get list of available models from Ollama.
-        
-        Returns:
-            List of available model names
-        """
+        """Get list of available models from Ollama."""
         if not self.ollama_available:
             return []
         
@@ -556,15 +448,7 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
             return []
     
     def set_model(self, model_name: str) -> bool:
-        """
-        Set the LLM model to use for summarization.
-        
-        Args:
-            model_name: Name of the model to use
-            
-        Returns:
-            True if model was set successfully
-        """
+        """Set the LLM model to use for summarization."""
         available_models = self.get_available_models()
         
         if not available_models:
@@ -580,15 +464,7 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
         return True
     
     def batch_summarize(self, articles: List[Dict[str, str]]) -> List[Dict[str, any]]:
-        """
-        Process multiple articles for batch summarization.
-        
-        Args:
-            articles: List of articles with title, content, and source
-            
-        Returns:
-            List of summarized articles with metadata
-        """
+        """Process multiple articles for batch summarization."""
         summaries = []
         
         for i, article in enumerate(articles):
@@ -618,12 +494,8 @@ Keep the summary concise but comprehensive, focusing on actionable intelligence 
         return summaries
 
 
-# Gradio Integration Functions for UI
 def create_gradio_interface_components():
-    """
-    Create the components needed for Gradio interface integration.
-    This function provides the interface elements that can be used in the main Gradio app.
-    """
+    """Create components for Gradio interface integration."""
     import gradio as gr
     
     def summarize_single_article(title, content, source="Manual Input", use_ollama=True, model_name="llama2"):
@@ -636,29 +508,22 @@ def create_gradio_interface_components():
         try:
             result = summarizer.generate_summary(title, content, source)
             
-            # Format the output for Gradio display
             formatted_output = f"""
 # Threat Intelligence Summary
-
 ## 📊 **Classification**
 - **Threat Type**: {result['threat_type']}
 - **Severity**: {result['severity']}
 - **Confidence**: {result['confidence']:.2%}
 - **Processing Method**: {result['summary_method']}
 - **Processing Time**: {result['processing_time']}s
-
 ## 📝 **Summary**
 {result['summary']}
-
 ## 🎯 **Affected Systems**
 {', '.join(result['affected_systems']) if result['affected_systems'] else 'Not specified'}
-
 ## 🔧 **Recommended Actions**
 {chr(10).join(f"• {rec}" for rec in result['recommendations'])}
-
 ## 🏷️ **Key Entities**
 {chr(10).join(f"**{category.title()}**: {', '.join(entities)}" for category, entities in result['key_entities'].items() if entities)}
-
 ---
 *Processed at: {result['processed_at']}*
 *Source: {result['source']}*
@@ -675,7 +540,6 @@ def create_gradio_interface_components():
         models = summarizer.get_available_models()
         return models if models else ["llama2", "mistral", "codellama"]
     
-    # Create Gradio interface components
     with gr.Row():
         title_input = gr.Textbox(
             label="Article Title",
@@ -718,7 +582,6 @@ def create_gradio_interface_components():
         value="Click 'Generate Threat Summary' to analyze your threat intelligence article."
     )
     
-    # Connect the interface
     summarize_btn.click(
         fn=summarize_single_article,
         inputs=[title_input, content_input, source_input, use_ollama_checkbox, model_dropdown],
@@ -740,17 +603,14 @@ def create_gradio_interface_components():
     }
 
 
-# Example usage and testing function
 def main() -> None:
-    """Comprehensive test of the AI Summarizer with Ollama integration."""
+    """Test suite for AI Threat Intelligence Summarizer."""
     print("🛡️ AI Threat Intelligence Summarizer Test Suite")
     print("=" * 60)
     
-    # Test both Ollama and extractive summarization
     summarizer_ollama = AISummarizer(use_ollama=True, model_name="llama2")
     summarizer_extractive = AISummarizer(use_ollama=False)
     
-    # Test content
     test_title = "Critical Zero-Day Vulnerability in Popular Web Framework Exploited by APT Group"
     test_content = """
     Security researchers from Cybersecurity Corp have discovered a critical zero-day vulnerability 
@@ -775,7 +635,6 @@ def main() -> None:
     print("🔬 Testing Ollama LLM Summarization...")
     print("-" * 40)
     
-    # Test Ollama summarization
     start_time = time.time()
     ollama_result = summarizer_ollama.generate_summary(test_title, test_content, "Test Source")
     ollama_time = time.time() - start_time
@@ -796,7 +655,6 @@ def main() -> None:
     print("🔧 Extractive Summarization Fallback Test...")
     print("-" * 40)
     
-    # Test extractive summarization
     start_time = time.time()
     extractive_result = summarizer_extractive.generate_summary(test_title, test_content, "Test Source")
     extractive_time = time.time() - start_time
