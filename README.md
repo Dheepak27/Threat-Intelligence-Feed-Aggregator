@@ -54,14 +54,5 @@ An interactive Gradio-based dashboard that aggregates, summarizes, and analyzes 
   - ℹ️ About
 
 ---
-
-## 📂 Project Structure
-
-📁 cyber-threat-intel-aggregator/
-├── app.py # Main Gradio interface
-├── ai_summarizer.py # AI summarization logic using Ollama and NLTK
-├── ioc_extractor.py # IOC parsing & validation engine
-├── requirements.txt # All Python dependencies
-└── README.md
-
-python app.py
+To Run App
+`python app.py`
