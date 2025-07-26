@@ -1,6 +1,8 @@
 # 🛡️ Cyber Threat Intelligence Feed Aggregator
 
 🔗 **Live Demo**: [Explore on Hugging Face Spaces](https://huggingface.co/spaces/Dheepak27/SocieteGeneral)
+🔗 **YouTube Demo**: [Solution Video](https://www.youtube.com/watch?v=mdfnU4-CeLU)
+
 
 An interactive **Gradio-powered dashboard** that aggregates, summarizes, and analyzes real-time cyber threat intelligence from curated feeds. Leveraging **local LLMs via Ollama**, and backed by **NLTK** for fallback summarization, this tool empowers security analysts, researchers, and SOC teams to stay ahead of emerging threats.
 
