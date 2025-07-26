@@ -58,7 +58,7 @@ An interactive **Gradio-powered dashboard** that aggregates, summarizes, and ana
 
 ### 🖥️ Custom Cyber-Themed Interface
 - Built with **Gradio 4.x+** for clean, responsive UI.
-- Designed with a sleek **black/red cyberpunk aesthetic** to match the threat intel theme.
+- Designed with a sleek **charcoal blue/electric indigo (blue-violet shade) cyberpunk aesthetic** to match the threat intel theme.
 - Fully interactive and minimal setup — runs in browser.
 - Tab-based layout for intuitive navigation:
   - 📊 **Dashboard** – View AI-generated summaries, trending buzzwords, and analytics
