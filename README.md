@@ -112,6 +112,7 @@ pip install -r requirements.txt
 # 5. Run the app
 python app.py
 
+```
 
 ## 👥Team
 22BPS1120 - Kamalesh D
