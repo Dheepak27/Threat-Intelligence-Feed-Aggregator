@@ -114,10 +114,11 @@ python app.py
 
 ```
 
-## 👥Team
-22BPS1120 - Kamalesh D
-22BPS1177 - Dheepak S
-22BPS1193 - Sujith P
+## 👥 Team  
+22BPS1120 - Kamalesh D<br>
+22BPS1177 - Dheepak S<br>
+22BPS1193 - Sujith P<br>
 22BPS1195 - Monish Raj H
+
 
 
