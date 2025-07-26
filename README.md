@@ -84,11 +84,12 @@ An interactive **Gradio-powered dashboard** that aggregates, summarizes, and ana
 ## 📁 Repository Structure
 
 📦 Threat-Intelligence-Feed-Aggregator/
-├── app.py # Main Gradio UI
-├── ai_summarizer.py # Summarization logic (Ollama, NLTK fallback)
-├── ioc_extractor.py # IOC pattern matching & extraction
-├── requirements.txt # Dependencies
-└── README.md # Project documentation
+├── app.py # Main Gradio application (UI and logic)
+├── ai_summarizer.py # Handles AI summarization (Ollama + NLTK fallback)
+├── ioc_extractor.py # Extracts Indicators of Compromise (IOCs)
+├── visualization_utils.py # Creates analytics charts using Plotly
+├── requirements.txt # List of required Python packages
+└── README.md # Project documentation (this file)
 
 
 ## 🚀 Getting Started
