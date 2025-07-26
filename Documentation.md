@@ -533,6 +533,12 @@ Below is a quick walkthrough of the UI for **Societe General – Threat Intellig
 
 ![Search Articles](static/ui-search.png)
 > Move to **Search Article** to search based on a topic (e.g., ransomware, botnet, CVE).
+<img width="1919" height="857" alt="image" src="https://github.com/user-attachments/assets/ecd90762-c945-430f-8773-16707c1497fb" />
+<img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/92e19c80-6cc1-44c8-baca-4e3722672bec" />
+<img width="1919" height="888" alt="image" src="https://github.com/user-attachments/assets/a0098b36-6e85-40d7-85ea-38a9213e85e2" />
+
+
+
 
 ---
 
@@ -540,7 +546,12 @@ Below is a quick walkthrough of the UI for **Societe General – Threat Intellig
 
 ![IOC Analysis](static/ui-ioc.png)
 > Navigate to **IOC Analysis**, select an indicator type (IP, Domain, Hash), and click **View IOC**.  
-> For example, IP addresses are shown here with confidence scores.
+<img width="1919" height="852" alt="image" src="https://github.com/user-attachments/assets/bf6fe164-0b63-4a95-887b-6f6a89b0b512" />
+
+> Export Feature
+<img width="1917" height="890" alt="image" src="https://github.com/user-attachments/assets/069cc0cc-2ad6-4fd9-8a29-cfd2973087cd" />
+
+
 
 ---
 
@@ -548,6 +559,10 @@ Below is a quick walkthrough of the UI for **Societe General – Threat Intellig
 
 ![Feed Management](static/ui-feed.png)
 > Go to **Feed Management** to manage your sources of intelligence (add/remove URLs or APIs).
+<img width="1919" height="842" alt="image" src="https://github.com/user-attachments/assets/3f2c2128-a6cd-43e4-84ca-058624a38d68" />
+<img width="1919" height="856" alt="image" src="https://github.com/user-attachments/assets/56395583-017e-4699-972a-db43cdd2bb6e" />
+
+
 
 ---
 
