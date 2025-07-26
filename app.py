@@ -12,12 +12,11 @@ import matplotlib.pyplot as plt
 import io
 from PIL import Image
 import math
-# Import our custom modules
+
 from ai_summarizer import AISummarizer
 from ioc_extractor import EnhancedIOCExtractor, IOCResult
 from visualization_utils import ThreatIntelVisualizer
 
-# Import the original functions we need from app.py
 import feedparser
 import requests
 import re
@@ -26,13 +25,9 @@ from urllib.parse import urlparse
 from dateutil import parser
 
 class ThreatIntelligenceAggregator:
-    """
-    Main class for the Threat Intelligence Feed Aggregator with Gradio interface.
-    Replaces the Streamlit implementation to meet technical expectations.
-    """
+    """Main class for the Threat Intelligence Feed Aggregator with Gradio interface."""
    
     def __init__(self):
-        """Initialize the aggregator with all necessary components."""
         self.feed_sources = [
             {'name': 'The Hacker News', 'url': 'https://feeds.feedburner.com/TheHackersNews'},
             {'name': 'Krebs on Security', 'url': 'https://krebsonsecurity.com/feed/'},
@@ -42,41 +37,25 @@ class ThreatIntelligenceAggregator:
             {'name': 'US-CERT', 'url': 'https://us-cert.cisa.gov/ncas/alerts.xml'}
         ]
        
-        # Initialize AI summarizer with Ollama support
-        self.ai_summarizer = AISummarizer(use_ollama=True)  # Enable Ollama
-       
-        # Initialize enhanced IOC extractor
+        self.ai_summarizer = AISummarizer(use_ollama=True)
         self.ioc_extractor = EnhancedIOCExtractor()
         
-        # Initialize visualizer with error handling
         try:
             self.visualizer = ThreatIntelVisualizer(theme="dark")
         except Exception as e:
             print(f"Error initializing visualizer: {str(e)}")
             self.visualizer = None
        
-        # Data storage
         self.feed_data = pd.DataFrame()
         self.extracted_iocs = {}
         self.ai_summaries = {}
         self.last_update_time = None
-       
-        # Threading lock for concurrent operations
         self.update_lock = threading.Lock()
    
     def fetch_rss_feeds(self, progress_callback=None) -> Tuple[pd.DataFrame, str]:
-        """
-        Fetch and parse RSS feeds with progress updates for Gradio.
-       
-        Args:
-            progress_callback: Optional callback for progress updates
-           
-        Returns:
-            Tuple of (DataFrame with feed data, status message)
-        """
+        """Fetch and parse RSS feeds with progress updates for Gradio."""
         feed_entries = []
         failed_sources = []
-       
         total_sources = len(self.feed_sources)
        
         for idx, source in enumerate(self.feed_sources):
@@ -85,19 +64,15 @@ class ThreatIntelligenceAggregator:
                     progress = (idx + 1) / total_sources
                     progress_callback(progress, f'Fetching from {source["name"]}...')
                
-                # Add timeout and user agent for better compatibility
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                 }
                
-                # Fetch with timeout
                 response = requests.get(source['url'], headers=headers, timeout=10)
                 response.raise_for_status()
-               
                 feed = feedparser.parse(response.content)
                
                 for entry in feed.entries:
-                    # Extract content from different feed formats
                     content = ""
                     if hasattr(entry, 'content') and entry.content:
                         content = entry.content[0].value if isinstance(entry.content, list) else entry.content
@@ -106,7 +81,6 @@ class ThreatIntelligenceAggregator:
                     elif hasattr(entry, 'description') and entry.description:
                         content = entry.description
                            
-                    # Extract and format publication date
                     published = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     if hasattr(entry, 'published') and entry.published:
                         try:
@@ -119,11 +93,9 @@ class ThreatIntelligenceAggregator:
                         except Exception:
                             pass
                    
-                    # Clean content by removing HTML tags
                     soup = BeautifulSoup(content, 'html.parser')
                     clean_content = soup.get_text(strip=True)
                    
-                    # Create feed entry
                     feed_entry = {
                         'title': getattr(entry, 'title', 'No Title'),
                         'link': getattr(entry, 'link', ''),
@@ -143,7 +115,6 @@ class ThreatIntelligenceAggregator:
        
         df = pd.DataFrame(feed_entries)
        
-        # Sort by publication date (newest first)
         if not df.empty and 'published' in df.columns:
             try:
                 df['published_dt'] = pd.to_datetime(df['published'], errors='coerce')
@@ -152,7 +123,6 @@ class ThreatIntelligenceAggregator:
             except Exception as e:
                 pass
        
-        # Create status message
         status_msg = f"✅ Successfully fetched {len(feed_entries)} articles from {len(self.feed_sources)} sources."
         if failed_sources:
             status_msg += f"\n⚠️ Failed sources: {', '.join(failed_sources[:3])}"
@@ -162,24 +132,14 @@ class ThreatIntelligenceAggregator:
         return df, status_msg
    
     def extract_all_iocs(self, df: pd.DataFrame) -> Dict[str, List[str]]:
-        """
-        Extract IOCs from all articles using the enhanced extractor.
-       
-        Args:
-            df: DataFrame containing feed data
-           
-        Returns:
-            Dictionary containing all extracted IOCs
-        """
+        """Extract IOCs from all articles using the enhanced extractor."""
         all_iocs_result = IOCResult()
        
         for _, row in df.iterrows():
             if pd.notna(row['content']):
                 article_iocs = self.ioc_extractor.extract_iocs(row['content'])
                
-                # Merge IOCs
                 for attr_name in all_iocs_result.__dataclass_fields__.keys():
-                    # Skip non-list attributes like extraction_metadata
                     if attr_name == 'extraction_metadata':
                         continue
                    
@@ -187,7 +147,6 @@ class ThreatIntelligenceAggregator:
                     new_list = getattr(article_iocs, attr_name, [])
                     current_list.extend(new_list)
        
-        # Remove duplicates and convert to dict
         result_dict = {}
         for attr_name in all_iocs_result.__dataclass_fields__.keys():
             ioc_list = getattr(all_iocs_result, attr_name)
@@ -196,16 +155,7 @@ class ThreatIntelligenceAggregator:
         return result_dict
    
     def generate_ai_summaries(self, df: pd.DataFrame, progress_callback=None) -> Dict[str, str]:
-        """
-        Generate AI summaries for articles using Ollama.
-       
-        Args:
-            df: DataFrame containing feed data
-            progress_callback: Optional callback for progress updates
-           
-        Returns:
-            Dictionary mapping article links to summaries
-        """
+        """Generate AI summaries for articles using Ollama."""
         summaries = {}
         total_articles = len(df)
        
@@ -223,18 +173,9 @@ class ThreatIntelligenceAggregator:
         return summaries
    
     def refresh_data(self, progress=gr.Progress()) -> Tuple[str, str, str, str]:
-        """
-        Main function to refresh all data - called by Gradio interface.
-       
-        Args:
-            progress: Gradio progress bar
-           
-        Returns:
-            Tuple of (status_message, feed_summary, ioc_summary, update_time)
-        """
+        """Main function to refresh all data - called by Gradio interface."""
         with self.update_lock:
             try:
-                # Step 1: Fetch RSS feeds
                 progress(0.1, "Fetching RSS feeds...")
                 self.feed_data, fetch_status = self.fetch_rss_feeds(
                     lambda p, msg: progress(0.1 + p * 0.3, msg)
@@ -243,22 +184,18 @@ class ThreatIntelligenceAggregator:
                 if self.feed_data.empty:
                     return "❌ No data fetched from feeds", "", "", ""
                
-                # Step 2: Extract IOCs
                 progress(0.4, "Extracting IOCs...")
                 self.extracted_iocs = self.extract_all_iocs(self.feed_data)
                
-                # Step 3: Generate AI summaries
                 progress(0.6, "Generating AI summaries...")
                 self.ai_summaries = self.generate_ai_summaries(
-                    self.feed_data.head(10),  # Limit to first 10 for performance
+                    self.feed_data.head(10),
                     lambda p, msg: progress(0.6 + p * 0.3, msg)
                 )
                
-                # Step 4: Prepare summaries
                 progress(0.9, "Finalizing data...")
                 self.last_update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                
-                # Create feed summary
                 feed_summary = f"""
 📊 **Feed Summary**
 - Total Articles: {len(self.feed_data)}
@@ -266,7 +203,6 @@ class ThreatIntelligenceAggregator:
 - Date Range: {self.feed_data['published'].min()} to {self.feed_data['published'].max()}
 """
                
-                # Create IOC summary
                 ioc_counts = {k: len(v) for k, v in self.extracted_iocs.items() if v}
                 total_iocs = sum(ioc_counts.values())
                
@@ -291,20 +227,10 @@ class ThreatIntelligenceAggregator:
                 return f"❌ Error during data refresh: {str(e)}", "", "", ""
    
     def search_articles(self, query: str, source_filter: str = "All Sources") -> str:
-        """
-        Search articles based on query and source filter.
-    
-        Args:
-            query: Search query string
-            source_filter: Source to filter by
-        
-        Returns:
-            Formatted search results
-        """
+        """Search articles based on query and source filter."""
         if self.feed_data.empty:
             return "⚠️ No data available. Please refresh data first."
     
-        # Apply filters
         filtered_data = self.feed_data.copy()
     
         if query.strip():
@@ -320,41 +246,29 @@ class ThreatIntelligenceAggregator:
         if filtered_data.empty:
             return f"🔍 No articles found matching '{query}'"
     
-        # Format results with better markdown
         total_results = len(filtered_data)
         results = f"🔍 **Found {total_results} articles matching '{query}'**\n\n"
     
-        for idx, (_, row) in enumerate(filtered_data.head(10).iterrows()):  # Limit to 10 results
+        for idx, (_, row) in enumerate(filtered_data.head(10).iterrows()):
             title = row['title'] if pd.notna(row['title']) else 'No Title'
             source = row['source'] if pd.notna(row['source']) else 'Unknown Source'
             published = row['published'] if pd.notna(row['published']) else 'Unknown Date'
             summary = row['summary'] if pd.notna(row['summary']) else 'No summary available'
             link = row['link'] if pd.notna(row['link']) else '#'
             
-            # Truncate summary if too long
-            # if len(summary) > 200:
-            #     summary = summary[:200] + "..."
-            
             results += f"---\n"
             results += f"### {idx + 1}. {title}\n"
             results += f"**📡 Source:** {source} | **📅 Published:** {published}\n\n"
             results += f"**📄 Summary:** {summary}\n\n"
         
-            # Add AI summary if available - with better formatting
             if row['link'] in self.ai_summaries:
                 ai_data = self.ai_summaries[row['link']]
                 
-                # Check if ai_data is a dictionary (parsed) or string (raw)
                 if isinstance(ai_data, dict):
-                    # Format structured AI summary
                     threat_type = ai_data.get('threat_type', 'Unknown')
                     severity = ai_data.get('severity', 'Unknown')
                     confidence = ai_data.get('confidence', 0)
                     ai_summary_text = ai_data.get('summary', '')
-                    
-                    # # Truncate AI summary if too long
-                    # if ai_summary_text and len(ai_summary_text) > 150:
-                    #     ai_summary_text = ai_summary_text[:150] + "..."
                     
                     results += f"**🤖 AI Analysis:**\n"
                     results += f"- **Threat Type:** {threat_type}\n"
@@ -364,48 +278,29 @@ class ThreatIntelligenceAggregator:
                         results += f"- **Analysis:** {ai_summary_text}\n"
                     results += "\n"
                     
-                    # Add recommendations if available
                     recommendations = ai_data.get('recommendations', [])
                     if recommendations and len(recommendations) > 0:
                         results += f"**🛡️ Key Recommendations:**\n"
-                        # Show only top 3 recommendations to keep it clean
                         for rec in recommendations[:3]:
                             results += f"- {rec}\n"
                         results += "\n"
                         
                 else:
-                    # Handle raw string AI summaries
                     ai_text = str(ai_data)
-                    # if len(ai_text) > 200:
-                    #     ai_text = ai_text[:200] + "..."
                     results += f"**🤖 AI Summary:** {ai_text}\n\n"
         
             results += f"**🔗 [Read Full Article]({link})**\n\n"
     
-        # Add pagination info if there are more results
         if total_results > 10:
             results += f"*Showing top 10 results out of {total_results} total matches.*\n"
     
         return results
 
-
     def search_articles_paginated(self, query: str, source_filter: str = "All Sources", page: int = 1, per_page: int = 10) -> tuple:
-        """
-        Search articles with pagination support.
-    
-        Args:
-            query: Search query string
-            source_filter: Source to filter by
-            page: Current page number (1-based)
-            per_page: Number of results per page
-        
-        Returns:
-            Tuple of (formatted_results, total_results, total_pages)
-        """
+        """Search articles with pagination support."""
         if self.feed_data.empty:
             return "⚠️ No data available. Please refresh data first.", 0, 1
     
-        # Apply filters
         filtered_data = self.feed_data.copy()
     
         if query.strip():
@@ -423,19 +318,14 @@ class ThreatIntelligenceAggregator:
         if total_results == 0:
             return f"🔍 No articles found matching '{query}'", 0, 1
     
-        # Calculate pagination
         total_pages = math.ceil(total_results / per_page)
         start_idx = (page - 1) * per_page
         end_idx = start_idx + per_page
-        
-        # Get current page data
         page_data = filtered_data.iloc[start_idx:end_idx]
     
-        # Format results with better markdown
         results = f"🔍 **Found {total_results} articles matching '{query}'**\n\n"
     
         for idx, (_, row) in enumerate(page_data.iterrows()):
-            # Calculate the actual article number (not just page index)
             article_num = start_idx + idx + 1
             
             title = row['title'] if pd.notna(row['title']) else 'No Title'
@@ -444,7 +334,6 @@ class ThreatIntelligenceAggregator:
             summary = row['summary'] if pd.notna(row['summary']) else 'No summary available'
             link = row['link'] if pd.notna(row['link']) else '#'
             
-            # Truncate summary if too long
             if len(summary) > 200:
                 summary = summary[:200] + "..."
             
@@ -453,19 +342,15 @@ class ThreatIntelligenceAggregator:
             results += f"**📡 Source:** {source} | **📅 Published:** {published}\n\n"
             results += f"**📄 Summary:** {summary}\n\n"
         
-            # Add AI summary if available - with better formatting
             if row['link'] in self.ai_summaries:
                 ai_data = self.ai_summaries[row['link']]
                 
-                # Check if ai_data is a dictionary (parsed) or string (raw)
                 if isinstance(ai_data, dict):
-                    # Format structured AI summary
                     threat_type = ai_data.get('threat_type', 'Unknown')
                     severity = ai_data.get('severity', 'Unknown')
                     confidence = ai_data.get('confidence', 0)
                     ai_summary_text = ai_data.get('summary', '')
                     
-                    # Truncate AI summary if too long
                     if ai_summary_text and len(ai_summary_text) > 150:
                         ai_summary_text = ai_summary_text[:150] + "..."
                     
@@ -477,17 +362,14 @@ class ThreatIntelligenceAggregator:
                         results += f"- **Analysis:** {ai_summary_text}\n"
                     results += "\n"
                     
-                    # Add recommendations if available
                     recommendations = ai_data.get('recommendations', [])
                     if recommendations and len(recommendations) > 0:
                         results += f"**🛡️ Key Recommendations:**\n"
-                        # Show only top 3 recommendations to keep it clean
                         for rec in recommendations[:3]:
                             results += f"- {rec}\n"
                         results += "\n"
                         
                 else:
-                    # Handle raw string AI summaries
                     ai_text = str(ai_data)
                     if len(ai_text) > 200:
                         ai_text = ai_text[:200] + "..."
@@ -498,19 +380,10 @@ class ThreatIntelligenceAggregator:
         return results, total_results, total_pages
 
     def get_ioc_details(self, ioc_type: str) -> str:
-        """
-        Get detailed IOC information for a specific type.
-       
-        Args:
-            ioc_type: Type of IOC to display
-           
-        Returns:
-            Formatted IOC details
-        """
+        """Get detailed IOC information for a specific type."""
         if not self.extracted_iocs:
             return "⚠️ No IOCs available. Please refresh data first."
        
-        # Map display names to internal keys
         ioc_type_map = {
             "IP Addresses": "ip_addresses",
             "Domains": "domains",
@@ -534,8 +407,6 @@ class ThreatIntelligenceAggregator:
             return f"🔍 No {ioc_type.lower()} found in current data."
        
         result = f"🔍 **{ioc_type} ({len(iocs)} found)**\n\n"
-       
-        # Show first 50 IOCs to avoid overwhelming the interface
         display_iocs = iocs[:50]
        
         for i, ioc in enumerate(display_iocs, 1):
@@ -549,15 +420,7 @@ class ThreatIntelligenceAggregator:
         return result
    
     def export_iocs(self, export_format: str) -> Tuple[str, str]:
-        """
-        Export IOCs in the specified format.
-       
-        Args:
-            export_format: Format to export (JSON, CSV, TXT)
-           
-        Returns:
-            Tuple of (file_content, filename)
-        """
+        """Export IOCs in the specified format."""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
        
         if export_format == "JSON":
@@ -565,7 +428,6 @@ class ThreatIntelligenceAggregator:
             filename = f"threat_iocs_{timestamp}.json"
        
         elif export_format == "CSV":
-            # Create CSV format
             csv_lines = ["type,value"]
             for ioc_type, ioc_list in self.extracted_iocs.items():
                 for ioc in ioc_list:
@@ -573,7 +435,7 @@ class ThreatIntelligenceAggregator:
             content = "\n".join(csv_lines)
             filename = f"threat_iocs_{timestamp}.csv"
        
-        else:  # TXT
+        else:
             txt_lines = []
             for ioc_type, ioc_list in self.extracted_iocs.items():
                 if ioc_list:
@@ -586,29 +448,17 @@ class ThreatIntelligenceAggregator:
         return content, filename
    
     def add_feed_source(self, name: str, url: str) -> str:
-        """
-        Add a new feed source.
-       
-        Args:
-            name: Name of the feed source
-            url: URL of the RSS/Atom feed
-           
-        Returns:
-            Status message
-        """
+        """Add a new feed source."""
         if not name.strip() or not url.strip():
             return "❌ Please provide both name and URL"
        
-        # Simple URL validation
         if not url.startswith(('http://', 'https://')):
             return "❌ URL must start with http:// or https://"
        
-        # Check if already exists
         for source in self.feed_sources:
             if source['url'] == url:
                 return f"⚠️ Feed source already exists: {source['name']}"
        
-        # Add new source
         self.feed_sources.append({'name': name.strip(), 'url': url.strip()})
        
         return f"✅ Added new feed source: {name}"
@@ -684,14 +534,12 @@ class ThreatIntelligenceAggregator:
         """Generate wordcloud from article content using the visualizer."""
         try:
             if not self.visualizer or self.feed_data.empty:
-                # Return an empty image
                 fig, ax = plt.subplots(figsize=(10, 5))
                 ax.text(0.5, 0.5, "No data available for wordcloud", 
                        ha='center', va='center', fontsize=16)
                 ax.axis('off')
                 fig.tight_layout(pad=0)
                 
-                # Convert to image array
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
                 buf.seek(0)
@@ -702,14 +550,12 @@ class ThreatIntelligenceAggregator:
             return self.visualizer.create_wordcloud_from_articles(self.feed_data)
         except Exception as e:
             print(f"Error generating wordcloud: {str(e)}")
-            # Return an error image
             fig, ax = plt.subplots(figsize=(10, 5))
             ax.text(0.5, 0.5, f"Error generating wordcloud: {str(e)}", 
                    ha='center', va='center', fontsize=16)
             ax.axis('off')
             fig.tight_layout(pad=0)
             
-            # Convert to image array
             buf = io.BytesIO()
             plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
             buf.seek(0)
@@ -740,14 +586,9 @@ class ThreatIntelligenceAggregator:
             return None
 
 def create_gradio_interface():
-    """
-    Create and configure the Gradio interface for the Threat Intelligence Aggregator.
-    This replaces the Streamlit interface to meet technical expectations.
-    """
-    # Initialize the aggregator
+    """Create and configure the Gradio interface for the Threat Intelligence Aggregator."""
     aggregator = ThreatIntelligenceAggregator()
    
-    # Custom CSS for better styling
     css = """
     .gradio-container {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -779,23 +620,18 @@ def create_gradio_interface():
     }
     """
    
-    # Create the main interface
     with gr.Blocks(css=css, title="🛡️ Threat Intelligence Feed Aggregator", theme=gr.themes.Soft()) as interface:
        
-        # Header
         gr.Markdown("# 🛡️ Threat Intelligence Feed Aggregator")
         gr.Markdown("*AI-Powered Threat Intelligence Platform with Ollama Integration*")
        
-        # Main tabs
         with gr.Tabs():
            
-            # Tab 1: Dashboard & Data Refresh
             with gr.TabItem("📊 Dashboard"):
                
                 with gr.Row():
                     refresh_btn = gr.Button("🔄 Refresh All Data", variant="primary", size="lg")
                
-                # Status and summary displays
                 with gr.Row():
                     with gr.Column():
                         status_display = gr.Markdown("ℹ️ Click 'Refresh All Data' to load threat intelligence feeds.")
@@ -808,29 +644,24 @@ def create_gradio_interface():
                
                 update_time_display = gr.Markdown("*No updates yet*")
                
-                # Connect refresh button
                 refresh_btn.click(
                     fn=aggregator.refresh_data,
                     outputs=[status_display, feed_summary, ioc_summary, update_time_display]
                 )
                 
-            # Tab 2: Analytics & Visualizations
             with gr.TabItem("📈 Analytics"):
                 gr.Markdown("## 📊 Threat Intelligence Visualizations")
                 gr.Markdown("Explore threat intelligence data through interactive visualizations")
                 
-                # Refresh visualizations button
                 with gr.Row():
                     refresh_viz_btn = gr.Button("🔄 Refresh Visualizations", variant="primary")
                 
-                # Select time window for trend analysis
                 time_window = gr.Radio(
                     ["day", "week", "month"],
                     label="Time Window for Trend Analysis",
                     value="week"
                 )
                 
-                # Main visualizations in tabs
                 with gr.Tabs():
                     with gr.TabItem("IOC Distribution"):
                         ioc_dist_plot = gr.Plot(label="IOC Distribution")
@@ -858,7 +689,6 @@ def create_gradio_interface():
                         gr.Markdown("### 🔴 Real-time Global Threat Map")
                         gr.Markdown("Interactive threat intelligence map powered by Bitdefender")
                         
-                        # Iframe for Bitdefender threat map
                         threat_map_iframe = gr.HTML(
                             value="""
                             <iframe src="https://threatmap.bitdefender.com/"
@@ -871,9 +701,7 @@ def create_gradio_interface():
                             label="Bitdefender Threat Map"
                         )
                 
-                # Connect visualization refresh button
                 def refresh_all_visualizations(time_period):
-                    # Create a default empty figure to use when data is not available
                     empty_fig = go.Figure()
                     empty_fig.update_layout(
                         title="No Data Available",
@@ -886,7 +714,6 @@ def create_gradio_interface():
                         )]
                     )
                     
-                    # Get visualization data with safety checks
                     try:
                         ioc_dist = aggregator.generate_ioc_distribution_chart() or empty_fig
                         source_dist = aggregator.generate_source_distribution_pie() or empty_fig
@@ -927,7 +754,6 @@ def create_gradio_interface():
                     ]
                 )
            
-            # Tab 3: Search & Browse Articles
             with gr.TabItem("🔍 Search Articles"):
                
                 with gr.Row():
@@ -945,14 +771,12 @@ def create_gradio_interface():
                
                 search_btn = gr.Button("🔍 Search Articles", variant="primary")
                 
-                # Add pagination controls
                 with gr.Row():
                     prev_btn = gr.Button("⬅️ Previous", variant="secondary", scale=1)
                     with gr.Column(scale=2):
                         page_info = gr.Markdown("")
                     next_btn = gr.Button("➡️ Next", variant="secondary", scale=1)
 
-                # Results per page selector
                 with gr.Row():
                     results_per_page = gr.Dropdown(
                         choices=[5, 10, 20, 50],
@@ -963,17 +787,14 @@ def create_gradio_interface():
                     
                 search_results = gr.Markdown("Enter a search query to find relevant threat intelligence articles.")
                 
-                # Store current page state (this will be handled in the backend)
                 current_page = gr.State(1)
                 total_pages = gr.State(1)
                 current_query = gr.State("")
                 current_source = gr.State("All Sources")
                
-                # Connect search functionality with pagination
                 def search_with_pagination(query, source, page, per_page):
                     results, total_results, total_pgs = aggregator.search_articles_paginated(query, source, page, per_page)
                     
-                    # Update page info
                     if total_results > 0:
                         start_idx = (page - 1) * per_page + 1
                         end_idx = min(page * per_page, total_results)
@@ -995,39 +816,33 @@ def create_gradio_interface():
                         return search_with_pagination(query, source, new_page, per_page) + (new_page,)
                     return gr.update(), gr.update(), total_pgs, query, source, current_pg
                 
-                # Search button click
                 search_btn.click(
                     fn=search_with_pagination,
                     inputs=[search_query, source_dropdown, gr.State(1), results_per_page],
                     outputs=[search_results, page_info, total_pages, current_query, current_source]
                 ).then(
-                    fn=lambda: 1,  # Reset to page 1 on new search
+                    fn=lambda: 1,
                     outputs=current_page
                 )
                 
-                # Next button click
                 next_btn.click(
                     fn=go_to_next_page,
                     inputs=[current_page, total_pages, current_query, current_source, results_per_page],
                     outputs=[search_results, page_info, total_pages, current_query, current_source, current_page]
                 )
                 
-                # Previous button click
                 prev_btn.click(
                     fn=go_to_prev_page,
                     inputs=[current_page, total_pages, current_query, current_source, results_per_page],
                     outputs=[search_results, page_info, total_pages, current_query, current_source, current_page]
                 )
                 
-                # Results per page change
                 results_per_page.change(
                     fn=lambda query, source, per_page: search_with_pagination(query, source, 1, per_page) + (1,),
                     inputs=[current_query, current_source, results_per_page],
                     outputs=[search_results, page_info, total_pages, current_query, current_source, current_page]
                 )
 
-            # Keep all your other tabs (Tab 4, 5, 6) exactly as they are
-            # Tab 4: IOC Analysis
             with gr.TabItem("🎯 IOC Analysis"):
                
                 with gr.Row():
@@ -1046,7 +861,6 @@ def create_gradio_interface():
                
                 ioc_details = gr.Markdown("Select an IOC type and click 'View IOCs' to see extracted indicators.")
                
-                # Export section
                 gr.Markdown("## 📤 Export IOCs")
                 with gr.Row():
                     export_format = gr.Dropdown(
@@ -1059,7 +873,6 @@ def create_gradio_interface():
                
                 export_file = gr.File(label="📁 Download Exported IOCs", visible=False)
                
-                # Connect IOC functionality
                 view_iocs_btn.click(
                     fn=aggregator.get_ioc_details,
                     inputs=ioc_type_dropdown,
@@ -1068,7 +881,6 @@ def create_gradio_interface():
                
                 def export_iocs_wrapper(format_type):
                     content, filename = aggregator.export_iocs(format_type)
-                    # Save to temporary file
                     with open(filename, 'w') as f:
                         f.write(content)
                     return gr.update(value=filename, visible=True)
@@ -1079,10 +891,8 @@ def create_gradio_interface():
                     outputs=export_file
                 )
            
-            # Tab 5: Feed Management
             with gr.TabItem("⚙️ Feed Management"):
                
-                # Current sources display
                 current_sources = gr.Markdown(aggregator.get_feed_sources())
                
                 gr.Markdown("## ➕ Add New Feed Source")
@@ -1104,7 +914,6 @@ def create_gradio_interface():
                
                 add_feed_status = gr.Markdown("")
                
-                # Connect feed management
                 add_feed_btn.click(
                     fn=aggregator.add_feed_source,
                     inputs=[new_feed_name, new_feed_url],
@@ -1116,7 +925,6 @@ def create_gradio_interface():
                     outputs=current_sources
                 )
            
-            # Tab 6: System Information
             with gr.TabItem("ℹ️ About"):
                
                 gr.Markdown("""
@@ -1176,29 +984,22 @@ def create_gradio_interface():
    
     return interface
 
-# Keep your main function exactly as is
 def main():
-    """
-    Main function to launch the Gradio interface.
-    This replaces the Streamlit app.run() call.
-    """
+    """Main function to launch the Gradio interface."""
     print("🛡️ Starting Threat Intelligence Feed Aggregator...")
     print("📊 Initializing Gradio interface...")
    
-    # Create and launch the interface
     interface = create_gradio_interface()
    
     print("🚀 Launching web interface...")
     print("🌐 Access the application at: http://localhost:7860")
    
-    # Launch with appropriate settings
     interface.launch(
-        server_name="0.0.0.0",  # Allow external access
+        server_name="0.0.0.0",
         server_port=7860,
-        # share=True,  # Set to True if you want a public link
-        debug=True,  # Enable debug mode
+        debug=True,
         show_error=True,
-        inbrowser=True  # Auto-open browser
+        inbrowser=True
     )
 
 if __name__ == "__main__":
