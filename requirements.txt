@@ -1,0 +1,16 @@
+gradio
+pandas
+requests
+beautifulsoup4
+feedparser
+python-dateutil
+nltk
+pandas
+numpy
+matplotlib
+seaborn
+plotly
+networkx
+wordcloud
+Pillow
+validators
