@@ -54,20 +54,25 @@ An interactive Gradio-based dashboard that aggregates, summarizes, and analyzes 
   - ℹ️ About
 
 ---
-To Run App
-`# 1. Clone the GitHub repository
+## 🚀 Getting Started
+
+Follow these steps to clone and run the Threat Intelligence Feed Aggregator locally:
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/Dheepak27/Threat-Intelligence-Feed-Aggregator.git
 
-# 2. Change into the project directory
+# 2. Navigate into the project directory
 cd Threat-Intelligence-Feed-Aggregator
 
-# 3. Create a virtual environment (optional but recommended)
+# 3. (Optional) Create and activate a virtual environment
 python -m venv venv
 source venv/bin/activate        # For Linux/macOS
 venv\Scripts\activate           # For Windows
 
-# 4. Install all required dependencies
+# 4. Install dependencies
 pip install -r requirements.txt
 
-# 5. Run the application (Gradio app)
-python app.py`
+# 5. Run the app
+python app.py
+
