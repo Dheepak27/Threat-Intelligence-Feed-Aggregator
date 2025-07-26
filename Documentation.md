@@ -1,7 +1,7 @@
 # Threat Intelligence Feed Aggregator
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Hugging Face Spaces](https://img.shields.io/badge/%20View%20on-HuggingFace-blue?logo=huggingface)](https://huggingface.co/spaces/Dheepak27/SocieteGeneral)
 [![Gradio](https://img.shields.io/badge/interface-Gradio-orange.svg)](https://huggingface.co/spaces/Dheepak27/SocieteGeneral)
 
 An **AI-powered cybersecurity dashboard** that aggregates, analyzes, and visualizes real-time threat intelligence from multiple sources. This platform helps cybersecurity professionals efficiently process large volumes of threat data by providing automated analysis, IOC extraction, and interactive visualizations.
@@ -471,25 +471,6 @@ class AISummarizer:
         """Generate comprehensive threat analysis"""
 ```
 
-## 📈 Performance Metrics
-
-### Processing Benchmarks
-
-| Operation | Time (avg) | Throughput |
-|-----------|------------|------------|
-| RSS Feed Fetch | 2-5 seconds | 15 sources |
-| IOC Extraction | 50-100ms | Per article |
-| AI Summarization | 1-3 seconds | Per article |
-| Visualization Generation | 100-200ms | Per chart |
-
-### Accuracy Metrics
-
-| Component | Precision | Recall | F1-Score |
-|-----------|-----------|---------|----------|
-| IOC Extraction | 94% | 89% | 91% |
-| Threat Classification | 87% | 85% | 86% |
-| Severity Assessment | 82% | 79% | 80% |
-
 ## 🛠️ Configuration
 
 ### Environment Variables
@@ -515,6 +496,67 @@ The system monitors these threat intelligence sources:
 - Trend Micro Security News
 - Symantec Security Response
 - And 8+ additional sources
+
+## 🖥️ User Interface Walkthrough
+
+Below is a quick walkthrough of the UI for **Societe General – Threat Intelligence Feed Aggregator** hosted on [Hugging Face Spaces](https://huggingface.co/spaces/Dheepak27/SocieteGeneral).
+
+---
+
+### 📊 Dashboard – Home Page
+<img width="1914" height="918" alt="image" src="https://github.com/user-attachments/assets/fe49ba30-e588-45bc-8c97-0f69b7ce9e9a" />
+
+> Click on **Refresh All Data** to update threat intelligence feeds.
+
+<img width="1887" height="922" alt="image" src="https://github.com/user-attachments/assets/5f62e96b-c3d4-4c19-95b1-f875c328f93c" />
+
+---
+
+### 📈 Analytics View
+<img width="1887" height="921" alt="image" src="https://github.com/user-attachments/assets/a28f9167-ec59-45f6-b521-f9e426d0a5cb" />
+
+> Move to **Analytics**, switch to **Day** view, and click **Refresh Visualization** to see updated insights.
+
+<img width="1879" height="914" alt="image" src="https://github.com/user-attachments/assets/fd778db8-1a0e-4e20-81b8-87cfe1270da3" />
+
+> Explore additional **statistical graphs** generated from the results under the **Analytics** tab for more insights and trends.
+
+<img width="1902" height="922" alt="image" src="https://github.com/user-attachments/assets/7c2ba8bf-5e63-4dcf-8504-4c4c2a414411" />
+...
+<img width="1879" height="923" alt="image" src="https://github.com/user-attachments/assets/246a3eb1-87cd-429b-b3ad-77af1e807aec" />
+
+
+
+---
+
+### 🔍 Search Articles
+
+![Search Articles](static/ui-search.png)
+> Move to **Search Article** to search based on a topic (e.g., ransomware, botnet, CVE).
+
+---
+
+### 🧠 IOC Analysis
+
+![IOC Analysis](static/ui-ioc.png)
+> Navigate to **IOC Analysis**, select an indicator type (IP, Domain, Hash), and click **View IOC**.  
+> For example, IP addresses are shown here with confidence scores.
+
+---
+
+### ⚙️ Feed Management
+
+![Feed Management](static/ui-feed.png)
+> Go to **Feed Management** to manage your sources of intelligence (add/remove URLs or APIs).
+
+---
+
+### 🚀 Try it Live
+
+👉 [Click here to try the app on Hugging Face Spaces](https://huggingface.co/spaces/Dheepak27/SocieteGeneral)
+
+---
+
 
 ## 🚨 Troubleshooting
 
@@ -571,18 +613,6 @@ pytest tests/
 black .
 ```
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Ollama Team** - Local LLM infrastructure
-- **Gradio Team** - Web interface framework
-- **Plotly Team** - Interactive visualization library
-- **Threat Intelligence Community** - RSS feed sources and threat data
-- **MITRE ATT&CK Framework** - Threat classification standards
-
 ## 📞 Support
 
 For support and questions:
@@ -591,4 +621,4 @@ For support and questions:
 
 ---
 
-**Built with ❤️ for the cybersecurity community**
+**Built with ❤️ from Vangaurd Team**
