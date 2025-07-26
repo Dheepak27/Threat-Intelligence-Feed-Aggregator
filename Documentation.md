@@ -631,4 +631,4 @@ For support and questions:
 
 ---
 
-**Built with ❤️ from Vangaurd Team**
+**Built with ❤️ from Vanguard Team**
